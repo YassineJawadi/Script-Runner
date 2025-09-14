@@ -1,0 +1,16 @@
+version: "3.8"
+services:
+  auth_service:
+    build: .
+    container_name: auth_service
+    ports:
+      - "5000:5000"
+    env_file: .env
+    depends_on:
+      - mysql
+    networks:
+      - test_runner_network
+
+networks:
+  test_runner_network:
+    external: true
