@@ -1,16 +1,38 @@
-version: "3.8"
-services:
-  auth_service:
-    build: .
-    container_name: auth_service
-    ports:
-      - "5000:5000"
-    env_file: .env
-    depends_on:
-      - mysql
-    networks:
-      - test_runner_network
+# docker-compose.yml
+version: '3.8'
+
+volumes:
+  userdb_vol:
 
 networks:
-  test_runner_network:
-    external: true
+  micro_network:
+    external:
+      name: test_runner_network
+
+services:
+  user-api:
+    container_name: user-service
+    build:
+      context: .
+    ports:
+    - "5001:5001"
+    depends_on:
+      - db
+    networks:
+      - test_runner_network
+    restart: always
+
+  user-db:
+    container_name: mysql
+    image: mysql:8
+    ports:
+    - "32000:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 2ErdHmed%40glsi
+      MYSQL_DATABASE: db
+      MYSQL_USER: root
+      MYSQL_PASSWORD: 2ErdHmed%40glsi
+    networks:
+      - test_runner_network
+    volumes:
+    - userdb_vol:/var/lib/mysql
