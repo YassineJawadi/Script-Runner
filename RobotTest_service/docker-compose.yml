@@ -1,0 +1,42 @@
+version: '3.8'
+
+volumes:
+  robotdb_vol:
+  robot_results_vol:
+
+networks:
+  test_runner_network:   # Use one consistent network
+    driver: bridge       # Docker will create it if not external
+
+services:
+  robot-api:
+    container_name: robot-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5000"
+    depends_on:
+      - robot-db
+    networks:
+      - test_runner_network
+    restart: always
+    env_file: .env
+    volumes:
+      - .:/robotapp
+      - robot_results_vol:/robotapp/app/test_results
+
+  robot-db:
+    container_name: robot-mysql
+    image: mysql:8
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 2ErdHmed@glsi
+      MYSQL_DATABASE: robot_db
+      MYSQL_USER: root
+      MYSQL_PASSWORD: 2ErdHmed@glsi
+    networks:
+      - test_runner_network
+    volumes:
+      - robotdb_vol:/var/lib/mysql

@@ -1,0 +1,18 @@
+# Core Flask stack
+flask==3.0.3
+flask-sqlalchemy==3.1.1
+flask-migrate==4.0.7
+flask-jwt-extended==4.6.0
+
+# Database driver
+pymysql==1.1.1
+
+# Env management
+python-dotenv==1.0.1
+
+# Testing & subprocess helpers
+pytest==8.3.3
+pytest-cov==5.0.0
+psutil==6.0.0          # monitor subprocesses, CPU, memory
+celery==5.4.0          # (optional) task queue if you want async test execution
+requests==2.32.3       # in case service calls external APIs
