@@ -1,10 +1,9 @@
 import os
 from flask import Flask
 from flask_migrate import Migrate
-from .models import db
-from .routes import robot_bp       # rename blueprint to robot_bp in routes.py
-from config import DevelopmentConfig, ProductionConfig
+from flask_sqlalchemy import SQLAlchemy
 
+db = SQLAlchemy()
 migrate = Migrate()
 
 def create_app():
@@ -12,13 +11,16 @@ def create_app():
 
     env = os.getenv("FLASK_ENV", "development")
     if env == "production":
-        app.config.from_object(ProductionConfig)
+        app.config.from_object("config.ProductionConfig")
     else:
-        app.config.from_object(DevelopmentConfig)
+        app.config.from_object("config.DevelopmentConfig")
 
+    # Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
 
+    # Import routes and register blueprints
+    from .routes import robot_bp
     app.register_blueprint(robot_bp, url_prefix="/robotTest")
 
     return app
