@@ -1,13 +1,9 @@
-# docker-compose.yml
-version: '3.8'
-
 volumes:
   userdb_vol:
 
 networks:
-  micro_network:
-    external:
-      name: test_runner_network
+  test_runner_network:
+    driver: bridge
 
 services:
   user-api:
@@ -15,24 +11,30 @@ services:
     build:
       context: .
     ports:
-    - "5001:5001"
+      - "5001:5001"
     depends_on:
-      - db
+      user-db:
+        condition: service_healthy
     networks:
       - test_runner_network
     restart: always
 
   user-db:
-    container_name: mysql
+    container_name: user-db
     image: mysql:8
     ports:
-    - "3306:3306"
+      - "3308:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: 2ErdHmed%40glsi
-      MYSQL_DATABASE: db
-      MYSQL_USER: root
-      MYSQL_PASSWORD: 2ErdHmed%40glsi
+      MYSQL_ROOT_PASSWORD: 2ErdHmed
+      MYSQL_DATABASE: user_db
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: 2ErdHmed
     networks:
       - test_runner_network
     volumes:
-    - userdb_vol:/var/lib/mysql
+      - userdb_vol:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 5

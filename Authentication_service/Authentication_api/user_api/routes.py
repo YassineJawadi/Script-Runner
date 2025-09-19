@@ -1,26 +1,10 @@
 from flask import request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from flask_login import current_user, login_required, login_user, logout_user, login_manager
+from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
 from passlib.hash import sha256_crypt
 
-from Authentication_service.Authentication_api import db
+from .. import db
 from ..models import User
 from . import user_blueprint
-
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
-
-
-@login_manager.request_loader
-def load_user_from_request(request):
-    api_key = request.headers.get('Authorization')
-    if api_key:
-        api_key = api_key.replace('Bearer ', '')
-        user = User.query.filter_by(api_key=api_key).first()
-        return user
-    return None
 
 
 
@@ -32,8 +16,7 @@ def verify_password(password, hashed):
     return sha256_crypt.verify(password, hashed)
 
 
-
-@user_blueprint.route('/api/login', methods=['POST'])
+@user_blueprint.route('/user_api/login', methods=['POST'])
 def login():
     data = request.get_json(force=True)
     email = data.get('email')
@@ -44,25 +27,17 @@ def login():
 
     user = User.query.filter_by(email=email).first()
     if user and verify_password(password, user.password):
-        user.encode_api_key()
-        db.session.commit()
-        login_user(user, remember=True)
-        return jsonify({"message": "Login successful", "api_key": user.api_key})
+        access_token = create_access_token(identity=user.id)
+        return jsonify({
+            "message": "Login successful",
+            "access_token": access_token,
+            "user": user.serialize()
+        }), 200
 
     return jsonify({"message": "Invalid credentials"}), 401
 
 
-@user_blueprint.route('/api/logout', methods=['POST'])
-@jwt_required()
-@login_required
-def logout():
-    if current_user.is_authenticated:
-        logout_user()
-        return jsonify({"message": "Logout successful"})
-    return jsonify({"message": "User not authenticated"}), 401
-
-
-@user_blueprint.route('/api/register', methods=['POST'])
+@user_blueprint.route('/user_api/register', methods=['POST'])
 def register():
     data = request.get_json(force=True)
     required_fields = ['email', 'username', 'first_name', 'last_name', 'password']
@@ -81,35 +56,33 @@ def register():
         first_name=data['first_name'],
         last_name=data['last_name'],
         password=hashed_password,
-        is_authenticated=True,
-        is_admin=True
+        is_admin=False
     )
     db.session.add(user)
     db.session.commit()
 
     return jsonify({"message": "User created successfully", "user": user.serialize()}), 201
 
-@user_blueprint.route('/api/users', methods=['GET'])
+
+
+@user_blueprint.route('/user_api/users', methods=['GET'])
 @jwt_required()
-@login_required
 def get_all_users():
     users = [user.serialize() for user in User.query.all()]
-    return jsonify(users)
+    return jsonify(users), 200
 
 
-@user_blueprint.route('/api/users/<int:user_id>', methods=['GET'])
+@user_blueprint.route('/user_api/users/<int:user_id>', methods=['GET'])
 @jwt_required()
-@login_required
 def get_user(user_id):
     user = User.query.get(user_id)
     if not user:
         return jsonify({"message": "User not found"}), 404
-    return jsonify(user.serialize())
+    return jsonify(user.serialize()), 200
 
 
-@user_blueprint.route('/api/users/<int:user_id>', methods=['PUT'])
+@user_blueprint.route('/user_api/users/<int:user_id>', methods=['PUT'])
 @jwt_required()
-@login_required
 def update_user(user_id):
     user = User.query.get(user_id)
     if not user:
@@ -129,7 +102,7 @@ def update_user(user_id):
     return jsonify({"message": "User updated successfully", "user": user.serialize()}), 200
 
 
-@user_blueprint.route('/api/profile', methods=['GET'])
+@user_blueprint.route('/user_api/profile', methods=['GET'])
 @jwt_required()
 def profile():
     user_id = get_jwt_identity()
