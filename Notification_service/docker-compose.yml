@@ -1,0 +1,30 @@
+version: "3.9"
+services:
+  notification-service:
+    build: .
+    container_name: notification_service
+    ports:
+      - "5003:5000"
+    env_file:
+      - .env
+      - .flaskenv
+    depends_on:
+      - db
+      - smtp
+
+  db:
+    image: mysql:8.0
+    container_name: notification_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: notification_db
+    ports:
+      - "3306:3306"
+
+  smtp:
+    image: mailhog/mailhog   # ✅ This is the MailHog image
+    container_name: mailhog
+    ports:
+      - "8025:8025"   # Web UI
+      - "1025:1025"   # SMTP server
