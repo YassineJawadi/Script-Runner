@@ -11,7 +11,6 @@ def analyze_result(results_dir):
 
     result = ExecutionResult(output_file)
 
-    # Correct way: use suite/statistics attributes directly
     stats = {
         "total": result.suite.statistics.total,
         "passed": result.suite.statistics.passed,

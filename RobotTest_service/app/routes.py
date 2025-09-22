@@ -4,6 +4,7 @@ from werkzeug.utils import secure_filename
 from app import db
 from app.models import RobotTest
 from app.services.runner import run_robot_test
+from flask import send_file, abort
 
 robot_bp = Blueprint("robot", __name__)
 
@@ -21,9 +22,9 @@ def run_robot():
     data = request.get_json()
 
     new_test = RobotTest(
-        user_id=data.get("user_id", 1),  # TODO: replace with JWT later
+        user_id=data.get("user_id", 1),
         name=data["name"],
-        file_path=data["file_path"]  # must be relative like "robot_tests/login.robot"
+        file_path=data["file_path"]
     )
     db.session.add(new_test)
     db.session.commit()
@@ -36,6 +37,33 @@ def run_robot():
 def get_results():
     results = RobotTest.query.all()
     return jsonify([r.to_dict() for r in results])
+
+
+
+@robot_bp.route('/artifact/<int:test_id>/<string:artifact>', methods=['GET'])
+def get_artifact(test_id, artifact):
+    # Find the test in DB
+    test = RobotTest.query.get(test_id)
+    if not test:
+        return abort(404, description="Test not found")
+
+    # Map artifact type to file path
+    artifact_map = {
+        "report": os.path.join(os.getcwd(), f"app/test_results/test_{test.id}/report.html"),
+        "log": os.path.join(os.getcwd(), f"app/test_results/test_{test.id}/log.html"),
+        "output": os.path.join(os.getcwd(), f"app/test_results/test_{test.id}/output.xml"),
+        "debug": os.path.join(os.getcwd(), f"app/test_results/test_{test.id}/debug.txt"),
+    }
+
+    if artifact not in artifact_map:
+        return abort(404, description="Artifact type not found")
+
+    file_path = artifact_map[artifact]
+    if not os.path.exists(file_path):
+        return abort(404, description="File not found")
+
+    return send_file(file_path, as_attachment=True)
+
 
 
 @robot_bp.route("/upload", methods=["POST"])
