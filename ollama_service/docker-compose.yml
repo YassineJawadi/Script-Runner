@@ -1,0 +1,28 @@
+version: "3.8"
+services:
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/var/lib/ollama
+    restart: unless-stopped
+
+  ollama_service:
+    build:
+      context: .
+      dockerfile: ollama_service/Dockerfile
+    container_name: ollama_service
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_API=http://ollama:11434/api/generate
+      - OLLAMA_MODEL=mistral
+      - FLASK_ENV=development
+    ports:
+      - "5000:5000"
+    depends_on:
+      - ollama
+
+volumes:
+  ollama_data:
